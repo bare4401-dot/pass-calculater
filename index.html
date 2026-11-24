@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حاسبة علامة الفاينال المطلوبة للنجاح</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E9EEF3; --surface:#FFFFFF; --ink:#16243A; --muted:#5B6B80;
+    --hw:#2B5C8A; --need:#E3A81B; --ok:#1E7A55; --bad:#B3302A; --line:#D3DBE4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#101923; --surface:#17232F; --ink:#E8EEF4; --muted:#93A4B7; --hw:#6FA6D9; --need:#F0B93A; --ok:#4FC58F; --bad:#F07A73; --line:#2B3A4A; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;
+    line-height:1.7; min-height:100vh; display:grid; place-items:center; padding:24px 16px;
+  }
+  main{width:100%; max-width:560px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:28px 24px 24px}
+  h1{font-size:1.45rem; margin:0 0 4px; font-weight:700}
+  .sub{color:var(--muted); margin:0 0 22px; font-size:.95rem}
+  label{display:block; font-weight:500; margin-bottom:6px}
+  .field{display:flex; align-items:center; gap:10px}
+  input{
+    flex:1; font:inherit; font-size:1.4rem; padding:10px 14px; color:var(--ink);
+    background:transparent; border:2px solid var(--line); border-radius:10px; text-align:center;
+  }
+  input:focus-visible{outline:3px solid var(--hw); outline-offset:2px; border-color:var(--hw)}
+  .suffix{color:var(--muted); white-space:nowrap}
+  .error{color:var(--bad); min-height:1.7em; margin:6px 0 0; font-size:.92rem}
+
+  #result{margin-top:14px}
+  .answer{font-size:1rem; margin:0 0 4px; color:var(--muted)}
+  .big{font-size:2.6rem; font-weight:700; line-height:1.2; margin:0}
+  .big small{font-size:1rem; font-weight:400; color:var(--muted)}
+  .msg{margin:10px 0 0; font-weight:500}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+
+  .bar{margin:22px 0 6px; position:relative; height:30px; border-radius:8px; background:var(--bg); border:1px solid var(--line); overflow:hidden; display:flex; direction:ltr}
+  .bar span{display:block; height:100%; transition:width .35s ease}
+  #seg-hw{background:var(--hw)}
+  #seg-need{background:var(--need)}
+  .pass-line{position:absolute; top:-4px; bottom:-4px; left:60%; width:0; border-left:2px dashed var(--ink)}
+  .scale{position:relative; height:1.6em; direction:ltr; font-size:.8rem; color:var(--muted)}
+  .scale b{position:absolute; transform:translateX(-50%); font-weight:500}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:6px; font-size:.88rem; color:var(--muted)}
+  .legend i{display:inline-block; width:12px; height:12px; border-radius:3px; margin-inline-end:6px; vertical-align:-1px}
+
+  table{width:100%; border-collapse:collapse; margin-top:20px; font-size:.95rem}
+  td{padding:8px 0; border-top:1px solid var(--line)}
+  td:last-child{text-align:left; font-weight:500; font-variant-numeric:tabular-nums}
+  footer{margin-top:18px; color:var(--muted); font-size:.82rem}
+  @media (prefers-reduced-motion: reduce){ .bar span{transition:none} }
+</style>
+</head>
+<body>
+<main>
+  <h1>كم أحتاج في الفاينال لأنجح؟</h1>
+  <p class="sub">الوظيفة 30% والفاينال 70%، وحد النجاح 60 من 100. ولدخول الفاينال يجب ألا تقل علامة الوظيفة عن 60%.</p>
+
+  <label for="hw">علامة الوظيفة (من 100)</label>
+  <div class="field">
+    <input id="hw" type="text" inputmode="decimal" autocomplete="off" placeholder="مثال: 95">
+    <span class="suffix">/ 100</span>
+  </div>
+  <p class="error" id="err" role="alert"></p>
+
+  <section id="result" aria-live="polite" hidden>
+    <p class="answer">العلامة المطلوبة في الفاينال</p>
+    <p class="big"><span id="need">0</span> <small>من 100</small></p>
+    <p class="msg" id="msg"></p>
+
+    <div class="bar" aria-hidden="true">
+      <span id="seg-hw"></span><span id="seg-need"></span>
+      <div class="pass-line"></div>
+    </div>
+    <div class="scale" aria-hidden="true"><b style="left:0%">0</b><b style="left:30%">30</b><b style="left:60%">60</b><b style="left:100%">100</b></div>
+    <div class="legend">
+      <span><i style="background:var(--hw)"></i>ما حصلت عليه من الوظيفة</span>
+      <span><i style="background:var(--need)"></i>ما ينقصك للوصول إلى 60</span>
+    </div>
+
+    <table>
+      <tr><td>علامتك من الوظيفة بعد احتساب 30%</td><td id="t-hw"></td></tr>
+      <tr><td>المتبقي للوصول إلى 60 (من 70)</td><td id="t-rem"></td></tr>
+      <tr><td>المطلوب في الفاينال من 100</td><td id="t-fin"></td></tr>
+    </table>
+  </section>
+
+  <footer>الحساب: علامة الفاينال المطلوبة = (60 − علامة الوظيفة × 0.3) ÷ 0.7</footer>
+</main>
+
+<script>
+(function(){
+  var PASS = 60, HW_W = 0.3, FIN_W = 0.7, MIN_HW = 60;
+  var $ = function(id){ return document.getElementById(id); };
+  var input = $("hw");
+
+  // يقبل الأرقام العربية والفاصلة العربية/العادية
+  function normalize(s){
+    return s.trim()
+      .replace(/[٠-٩]/g, function(d){ return d.charCodeAt(0) - 1632; })
+      .replace(/[۰-۹]/g, function(d){ return d.charCodeAt(0) - 1776; })
+      .replace(/[٫,،]/g, ".");
+  }
+  function fmt(n){ return (Math.round(n * 100) / 100).toString(); }
+
+  function update(){
+    var raw = normalize(input.value);
+    var res = $("result"), err = $("err");
+    err.textContent = "";
+    if (raw === ""){ res.hidden = true; return; }
+    var hw = Number(raw);
+    if (!/^\d*\.?\d+$|^\d+\.$/.test(raw) || isNaN(hw)){
+      err.textContent = "أدخل رقمًا صحيحًا، مثل 95 أو 87.5";
+      res.hidden = true; return;
+    }
+    if (hw < 0 || hw > 100){
+      err.textContent = "علامة الوظيفة يجب أن تكون بين 0 و 100";
+      res.hidden = true; return;
+    }
+
+    var hwPart = hw * HW_W;                 // من 30
+    var remaining = PASS - hwPart;          // المتبقي من 70
+    var finalNeeded = remaining / FIN_W;    // من 100
+    var msg = $("msg"), need = $("need");
+
+    $("t-hw").textContent  = fmt(hwPart) + " من 30";
+    res.hidden = false;
+
+    // شرط دخول الفاينال: 60% على الأقل في الوظيفة
+    if (hw < MIN_HW){
+      need.textContent = "—";
+      $("t-rem").textContent = "—";
+      $("t-fin").textContent = "—";
+      msg.textContent = "الطالب غير مؤهل لدخول الفاينال، فعلامة الوظيفة أقل من 60%.";
+      msg.className = "msg bad";
+      setBar(hwPart, 0);
+      return;
+    }
+
+    if (finalNeeded <= 0){
+      need.textContent = "0";
+      $("t-rem").textContent = "0";
+      $("t-fin").textContent = "0";
+      msg.textContent = "أنت ناجح فعلًا، علامة الوظيفة وحدها تكفي.";
+      msg.className = "msg ok";
+      setBar(hwPart, 0);
+    } else if (finalNeeded > 100){
+      need.textContent = fmt(finalNeeded);
+      $("t-rem").textContent = fmt(remaining) + " من 70";
+      $("t-fin").textContent = fmt(finalNeeded) + " من 100";
+      msg.textContent = "لا يمكن النجاح بهذه العلامة، فالمطلوب يتجاوز 100 في الفاينال.";
+      msg.className = "msg bad";
+      setBar(hwPart, PASS - hwPart);
+    } else {
+      need.textContent = fmt(finalNeeded);
+      $("t-rem").textContent = fmt(remaining) + " من 70";
+      $("t-fin").textContent = fmt(finalNeeded) + " من 100";
+      msg.textContent = "إذا حققت هذه العلامة في الفاينال فمجموعك 60 وتنجح المادة.";
+      msg.className = "msg ok";
+      setBar(hwPart, remaining);
+    }
+  }
+
+  function setBar(hwPart, remaining){
+    $("seg-hw").style.width = hwPart + "%";
+    $("seg-need").style.width = Math.min(remaining, 100 - hwPart) + "%";
+  }
+
+  input.addEventListener("input", update);
+})();
+</script>
+</body>
+</html>
